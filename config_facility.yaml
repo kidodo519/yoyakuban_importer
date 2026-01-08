@@ -1,0 +1,65 @@
+﻿sankoh:
+  name: sankoh
+  enabled: true
+  db:
+    host: xxxxx
+    port: 5432
+    user: user_sankoh_insert
+    password: xxxxx
+    database: reservation_db_sankoh
+
+  yoyakuban:
+    id: 
+      yumenoi: yumenoi-admin
+      yuyake-koyake: yuyake-koyake-admin
+      syokichi: syokichi-admin
+      kariyaryokanq: kariyaryokanq-admin
+    pw: 
+      yumenoi: xxxxx
+      yuyake-koyake: xxxx
+      syokichi: xxxx
+      kariyaryokanq: xxxx
+    facility_number:
+      yumenoi: 1
+      yuyake-koyake: 2
+      syokichi: 3
+      kariyaryokanq: 4
+    customer:
+      yumenoi: true
+      yuyake-koyake: false
+      syokichi: false
+      kariyaryokanq: false
+    
+  webhook:
+    name: bot_sankoh
+    url: https://hooks.slack.com/services/xxxx
+
+
+a_and_c:  
+  name: a_and_c
+  enabled: true
+  db:
+    host: xxxxx
+    port: 5432
+    user: user_a_and_c_insert
+    password: xxxx
+    database: reservation_db_a_and_c
+
+  yoyakuban:
+    id: 
+      kifunosato: kifunosato-admin
+      roka: roka-admin
+    pw: 
+      kifunosato: xxxxx
+      roka: xxxx
+    facility_number:
+      kifunosato: 1
+      roka: 2
+    customer:
+      kifunosato: true
+      roka: false
+    
+  webhook:
+    name: bot_a_and_c
+    url: https://hooks.slack.com/services/xxxx
+
