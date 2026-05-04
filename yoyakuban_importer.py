@@ -23,6 +23,7 @@ try:
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.common.action_chains import ActionChains
 except Exception:
     webdriver = None
     ChromeOptions = None
@@ -305,16 +306,38 @@ def selenium_download_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
         login_button[0].click()
         time.sleep(5)
 
-        # date range
-        rng = _determine_dates(status, status_cfg)
-        if rng:
-            _fill_date_inputs(driver, rng[0], rng[1])
+        def _recover_from_popup() -> None:
+            actions = ActionChains(driver)
+            popup_close_keys = [Keys.TAB, Keys.TAB, Keys.TAB, Keys.SPACE, Keys.TAB, Keys.ENTER]
+            for key in popup_close_keys:
+                actions.send_keys(key).perform()
+                time.sleep(3)
+            time.sleep(10)
+            driver.get(target_url)
+            time.sleep(5)
 
-        driver.execute_script("window.scrollBy(0, 300);")
-        time.sleep(5)
-        export_button = driver.find_elements(By.ID, "csv")
-        if not export_button:
-            raise RuntimeError("CSV出力ボタンが見つかりません。")
+        # date range ～ CSV出力ボタン取得まででエラーが出た場合はポップアップ回避処理を実行して再試行
+        try:
+            rng = _determine_dates(status, status_cfg)
+            if rng:
+                _fill_date_inputs(driver, rng[0], rng[1])
+
+            driver.execute_script("window.scrollBy(0, 300);")
+            time.sleep(5)
+            export_button = driver.find_elements(By.ID, "csv")
+            if not export_button:
+                raise RuntimeError("CSV出力ボタンが見つかりません。")
+        except Exception:
+            _recover_from_popup()
+            rng = _determine_dates(status, status_cfg)
+            if rng:
+                _fill_date_inputs(driver, rng[0], rng[1])
+
+            driver.execute_script("window.scrollBy(0, 300);")
+            time.sleep(5)
+            export_button = driver.find_elements(By.ID, "csv")
+            if not export_button:
+                raise RuntimeError("CSV出力ボタンが見つかりません。")
 
         clicked_at = time.time()
         export_button[0].click()
