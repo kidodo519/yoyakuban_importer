@@ -23,6 +23,7 @@ try:
     from selenium.webdriver.support.ui import WebDriverWait
     from selenium.webdriver.support import expected_conditions as EC
     from selenium.webdriver.common.keys import Keys
+    from selenium.webdriver.common.action_chains import ActionChains
 except Exception:
     webdriver = None
     ChromeOptions = None
@@ -304,6 +305,17 @@ def selenium_download_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
             raise RuntimeError("ログインボタンが見つかりません。")
         login_button[0].click()
         time.sleep(5)
+
+        # 稀にログイン後ポップアップで遷移が止まるため、異常時はキーボード操作で閉じて再遷移
+        if not driver.current_url.startswith(target_url):
+            actions = ActionChains(driver)
+            popup_close_keys = [Keys.TAB, Keys.TAB, Keys.TAB, Keys.SPACE, Keys.TAB, Keys.ENTER]
+            for key in popup_close_keys:
+                actions.send_keys(key).perform()
+                time.sleep(3)
+            time.sleep(10)
+            driver.get(target_url)
+            time.sleep(5)
 
         # date range
         rng = _determine_dates(status, status_cfg)
