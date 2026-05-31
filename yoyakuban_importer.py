@@ -53,14 +53,46 @@ def ensure_dir(p: str) -> None:
 
 
 def load_yaml(path: str) -> Any:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, "r", encoding="utf-8-sig") as f:
         return yaml.safe_load(f)
 
 
 def load_config(base_dir: str) -> Dict[str, Any]:
     cfg = load_yaml(os.path.join(base_dir, "config.yaml"))
     fac = load_yaml(os.path.join(base_dir, "config_facility.yaml"))
-    return {"cfg": cfg, "fac": fac}
+    facility_configs = {
+        name: load_facility_config(base_dir, name, body)
+        for name, body in fac.items()
+        if isinstance(body, dict)
+    }
+    return {"cfg": cfg, "fac": fac, "facility_configs": facility_configs}
+
+
+def load_facility_config(base_dir: str, facility: str, fac_body: Dict[str, Any]) -> Dict[str, Any]:
+    config_file = fac_body.get("config_file")
+    if not config_file:
+        if "mappings" in fac_body:
+            return fac_body
+        return {}
+
+    path = config_file if os.path.isabs(config_file) else os.path.join(base_dir, config_file)
+    if not os.path.isfile(path):
+        raise FileNotFoundError(f"[{facility}] config_file が見つかりません: {path}")
+
+    facility_cfg = load_yaml(path)
+    if not isinstance(facility_cfg, dict):
+        raise ValueError(f"[{facility}] config_file は YAML マッピングである必要があります: {path}")
+    return facility_cfg
+
+
+def resolve_mappings(cfg: Dict[str, Any], facility_cfg: Dict[str, Any], facility: str) -> Dict[str, Any]:
+    mappings = facility_cfg.get("mappings") or cfg.get("mappings")
+    if not mappings:
+        raise KeyError(
+            f"[{facility}] mappings が見つかりません。"
+            "config_facility.yaml の config_file で config/[施設名].yaml を指定してください。"
+        )
+    return mappings
 
 
 # --------------------------
@@ -470,7 +502,7 @@ def _unified_pick_files(dir_path: str, patterns: Tuple[str, ...]) -> List[str]:
     return files
 
 
-def import_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
+def import_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any], facility_configs: Dict[str, Any],
                         facility: str, login_slug: str, status: str) -> None:
     table = "yoyakuban_reservations" if status == "history" else "yoyakuban_reservations_onhand"
     base_dir = os.path.dirname(__file__)
@@ -495,7 +527,7 @@ def import_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
             if status == "onhand":
                 cur.execute(f"DELETE FROM {table} WHERE facility_code = %s;", (fc,))
 
-            mapping = cfg["mappings"]["reservation"]
+            mapping = resolve_mappings(cfg, facility_configs.get(facility, {}), facility)["reservation"]
             ordered_keys = list(mapping["string"].keys()) + \
                            list(mapping["integer"].keys()) + \
                            list(mapping["date"].keys()) + \
@@ -529,7 +561,7 @@ def import_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
         conn.close()
 
 
-def import_customers(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
+def import_customers(cfg: Dict[str, Any], fac_cfg: Dict[str, Any], facility_configs: Dict[str, Any],
                      facility: str, login_slug: str, multi_slug: bool) -> None:
     table = "yoyakuban_customer"
     base_dir = os.path.dirname(__file__)
@@ -551,7 +583,7 @@ def import_customers(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
             else:
                 cur.execute(f"TRUNCATE TABLE {table};")
 
-            mapping = cfg["mappings"]["customer"]
+            mapping = resolve_mappings(cfg, facility_configs.get(facility, {}), facility)["customer"]
             ordered_keys = (
                 list(mapping["string"].keys())
                 + list(mapping["integer"].keys())
@@ -595,6 +627,7 @@ def main() -> int:
     base_dir = os.path.abspath(args.base_dir)
     conf = load_config(base_dir)
     cfg, fac_cfg = conf["cfg"], conf["fac"]
+    facility_configs = conf["facility_configs"]
 
     facilities = []
     for name, body in fac_cfg.items():
@@ -623,11 +656,11 @@ def main() -> int:
                         _ = selenium_download_members(cfg, fac_cfg, fac, slug)
 
                 if cfg["setting"]["history"]["import"]:
-                    import_reservations(cfg, fac_cfg, fac, slug, "history")
+                    import_reservations(cfg, fac_cfg, facility_configs, fac, slug, "history")
                 if cfg["setting"]["onhand"]["import"]:
-                    import_reservations(cfg, fac_cfg, fac, slug, "onhand")
+                    import_reservations(cfg, fac_cfg, facility_configs, fac, slug, "onhand")
                 if cfg["setting"]["customer"]["import"] and should_import_customer(fac_cfg, fac, slug):
-                    import_customers(cfg, fac_cfg, fac, slug, multi_slug)
+                    import_customers(cfg, fac_cfg, facility_configs, fac, slug, multi_slug)
 
             except Exception:
                 msg = f"[{fac}/{slug}] 予期せぬエラー\n{traceback.format_exc()}"
