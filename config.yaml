@@ -1,4 +1,4 @@
-﻿csv:
+csv:
   input_directory_history: csv_reservations_history
   input_directory_onhand: csv_reservations_onhand
   input_directory_customer: csv_customer
@@ -9,58 +9,6 @@ path:
   download_path: C:\Users\kifunosato\Downloads
   driver_path: C:\Users\kifunosato\Desktop\program\chromedriver-win32\chromedriver.exe
 
-mappings:
-  reservation:
-    string:
-      reservation_status: 状態
-      reservation_number: 予約番号
-      reservation_method: 予約方法
-      email: メールアドレス
-      postal_code: 郵便番号
-      address_state: 都道府県
-      phone: 連絡先（主）
-      transport_method: 交通手段
-      past_stay: 過去の宿泊
-      anniversary: 記念日
-      member_registered: 会員
-      payment_method: 決済手段
-      device: 予約方法
-      gender: 性別
-      purpose: 今回の旅の目的
-      customer_journey: 当館をどこでお知りになりましたか？
-      plan: 宿泊プラン
-      room_type: 部屋タイプ
-      repeat: 過去の宿泊
-      deciding_factor: ご予約の決め手
-
-    integer:
-      age: 年齢
-
-    date:
-      start_date: 宿泊日（チェックイン）
-      birthdate: 生年月日
-  
-  customer:
-    string:
-      guest_name: 氏名
-      email: メールアドレス
-      gender: 性別
-      postal_code: 郵便番号
-      prefecture: 都道府県
-      address1: 住所1
-      address2: 住所2
-      phone: 連絡先（主）
-      contact_time: 連絡希望時間（ 連絡先（主） ）
-      dm_availability: DM配信の有無
-
-    integer:
-      age: 年齢
-      number_of_use: 施設利用回数
-
-    date:
-      registration_date: 会員登録日
-      birthdate: 生年月日
-  
 setting:
   message:
     success: false

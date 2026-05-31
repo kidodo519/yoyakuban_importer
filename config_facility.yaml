@@ -1,5 +1,6 @@
-﻿sankoh:
+sankoh:
   name: sankoh
+  config_file: sankoh
   enabled: true
   db:
     host: xxxxx
@@ -37,6 +38,7 @@
 
 a_and_c:  
   name: a_and_c
+  config_file: a_and_c
   enabled: true
   db:
     host: xxxxx
