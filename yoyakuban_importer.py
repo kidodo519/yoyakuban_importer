@@ -75,7 +75,10 @@ def load_facility_config(base_dir: str, facility: str, fac_body: Dict[str, Any])
             return fac_body
         return {}
 
-    path = config_file if os.path.isabs(config_file) else os.path.join(base_dir, config_file)
+    config_name = str(config_file)
+    config_name = config_name if config_name.endswith((".yaml", ".yml")) else f"{config_name}.yaml"
+    path = os.path.join(base_dir, "config", config_name)
+
     if not os.path.isfile(path):
         raise FileNotFoundError(f"[{facility}] config_file が見つかりません: {path}")
 
@@ -90,7 +93,7 @@ def resolve_mappings(cfg: Dict[str, Any], facility_cfg: Dict[str, Any], facility
     if not mappings:
         raise KeyError(
             f"[{facility}] mappings が見つかりません。"
-            "config_facility.yaml の config_file で config/[施設名].yaml を指定してください。"
+            "config_facility.yaml の config_file で config フォルダ内の YAML ファイル名を指定してください。"
         )
     return mappings
 

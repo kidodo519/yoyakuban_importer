@@ -1,6 +1,6 @@
 sankoh:
   name: sankoh
-  config_file: config/sankoh.yaml
+  config_file: sankoh
   enabled: true
   db:
     host: xxxxx
@@ -38,7 +38,7 @@ sankoh:
 
 a_and_c:  
   name: a_and_c
-  config_file: config/a_and_c.yaml
+  config_file: a_and_c
   enabled: true
   db:
     host: xxxxx

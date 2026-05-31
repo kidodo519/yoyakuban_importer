@@ -38,7 +38,7 @@ yoyakuban/
 ```yaml
 sankoh:
   name: sankoh
-  config_file: config/sankoh.yaml
+  config_file: sankoh
   enabled: true
   db:
     host: xxxxx
@@ -48,7 +48,7 @@ sankoh:
     database: reservation_db_sankoh
 ```
 
-`config_file` は `--base-dir` からの相対パス、または絶対パスで指定できます。
+`config_file` は `config/` フォルダ内の YAML ファイル名を、拡張子なしで指定します。例: `config_file: sankoh` は `config/sankoh.yaml` を読み込みます。
 
 ### `config/[施設名].yaml` に mapping を保持
 CSV の列名が施設ごとに異なる場合は、対象施設の YAML だけを変更してください。
@@ -101,7 +101,7 @@ python yoyakuban_importer.py --base-dir . --skip-selenium
 
 ## 動作仕様（統合モード）
 - 起動時に `config.yaml` と `config_facility.yaml` を読み込みます。
-- `config_facility.yaml` の `config_file` で指定された `config/[施設名].yaml` を施設ごとに読み込みます。
+- `config_facility.yaml` の `config_file` で指定された名前から `config/[config_file].yaml` を施設ごとに読み込みます。
 - 予約・顧客 CSV の取り込み時は、処理中の施設に対応する mapping を使用します。
 - `csv_reservations_history/` と `csv_reservations_onhand/` をスキャンし、
   ファイル名から facility / slug を解析してインポートします。
