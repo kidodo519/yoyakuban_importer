@@ -326,23 +326,27 @@ def selenium_download_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
             driver.get(target_url)
             time.sleep(5)
 
+        rng = _determine_dates(status, status_cfg)
+
+        def _prepare_booking_page_for_export():
+            if rng:
+                _fill_date_inputs(driver, rng[0], rng[1])
+
+            driver.execute_script("window.scrollBy(0, 300);")
+            time.sleep(5)
+            export_button = driver.find_elements(By.ID, "csv")
+            if not export_button:
+                raise RuntimeError("CSV出力ボタンが見つかりません。")
+            return export_button[0]
+
         try:
-            rng = _determine_dates(status, status_cfg)
+            export_button = _prepare_booking_page_for_export()
         except Exception:
             _recover_from_popup()
-            rng = _determine_dates(status, status_cfg)
-
-        if rng:
-            _fill_date_inputs(driver, rng[0], rng[1])
-
-        driver.execute_script("window.scrollBy(0, 300);")
-        time.sleep(5)
-        export_button = driver.find_elements(By.ID, "csv")
-        if not export_button:
-            raise RuntimeError("CSV出力ボタンが見つかりません。")
+            export_button = _prepare_booking_page_for_export()
 
         clicked_at = time.time()
-        export_button[0].click()
+        export_button.click()
 
         default_sleep = 15 if status == "history" else 30
         manual_date = bool(status_cfg.get("manual_date", True))
