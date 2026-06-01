@@ -36,9 +36,6 @@ except Exception:
     requests = None
 
 
-# --------------------------
-# Utils
-# --------------------------
 def ymd_compact(d: dtx.date) -> str:
     return f"{d.year}{d.month:02d}{d.day:02d}"
 
@@ -98,9 +95,6 @@ def resolve_mappings(cfg: Dict[str, Any], facility_cfg: Dict[str, Any], facility
     return mappings
 
 
-# --------------------------
-# Notifications (STRICT)
-# --------------------------
 def notifications_enabled(cfg: Dict[str, Any]) -> bool:
     try:
         return bool(cfg.get("setting", {}).get("message", {}).get("error", True))
@@ -130,9 +124,6 @@ def resolve_webhook(cfg: Dict[str, Any], fac_cfg: Dict[str, Any], facility: str)
     return url
 
 
-# --------------------------
-# Credentials & slug enumeration (STRICT)
-# --------------------------
 def _select_value_by_slug(val, login_slug: str, facility: str):
     if isinstance(val, dict):
         if login_slug in val:
@@ -175,9 +166,6 @@ def resolve_yoyakuban_for_slug(cfg: Dict[str, Any], fac_cfg: Dict[str, Any], fac
     raise KeyError(f"[{facility}] yoyakuban 資格情報が見つかりません。")
 
 
-# --------------------------
-# CSV mapping
-# --------------------------
 def map_row(row: Dict[str, str], mapping: Dict[str, Dict[str, str]]) -> Dict[str, Any]:
     out: Dict[str, Any] = {}
     for k, col in mapping["string"].items():
@@ -215,9 +203,6 @@ def add_generated_customer(rec: Dict[str, Any], facility: str, facility_code: in
     }
 
 
-# --------------------------
-# DB
-# --------------------------
 def connect_db(db: Dict[str, Any]):
     return psycopg2.connect(
         host=db["host"],
@@ -228,9 +213,6 @@ def connect_db(db: Dict[str, Any]):
     )
 
 
-# --------------------------
-# Selenium helpers (dates & downloads)
-# --------------------------
 def _new_driver(cfg: Dict[str, Any]):
     if not webdriver:
         raise RuntimeError("Selenium が利用できません。")
@@ -289,15 +271,12 @@ def _determine_dates(status: str, status_cfg: Dict[str, Any]) -> Optional[Tuple[
     if status == "history":
         start = today - dtx.timedelta(days=2)
         end = start
-    else:  # onhand
+    else:
         start = today - dtx.timedelta(days=1)
         end = today + dtx.timedelta(days=298)
     return start.strftime("%Y/%m/%d"), end.strftime("%Y/%m/%d")
 
 
-# --------------------------
-# Facility-level toggle for customer import
-# --------------------------
 def should_import_customer(fac_cfg: Dict[str, Any], facility: str, login_slug: str) -> bool:
     try:
         node = fac_cfg.get(facility, {}).get("yoyakuban", {})
@@ -311,9 +290,6 @@ def should_import_customer(fac_cfg: Dict[str, Any], facility: str, login_slug: s
     return True
 
 
-# --------------------------
-# Selenium flows  （★統合モード：保存先は施設サブフォルダではなくトップ階層の csv_*）
-# --------------------------
 def selenium_download_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
                                    facility: str, login_slug: str, status: str) -> str:
     status_cfg = cfg["setting"][status]
@@ -329,7 +305,6 @@ def selenium_download_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
         driver.maximize_window()
         time.sleep(5)
 
-        # login
         form_input = driver.find_elements(By.CLASS_NAME, "form-control")
         if len(form_input) < 2:
             raise RuntimeError("ログイン画面の入力要素が見つかりません。")
@@ -339,7 +314,7 @@ def selenium_download_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
         if not login_button:
             raise RuntimeError("ログインボタンが見つかりません。")
         login_button[0].click()
-        time.sleep(5)
+        time.sleep(15)
 
         def _recover_from_popup() -> None:
             actions = ActionChains(driver)
@@ -351,28 +326,20 @@ def selenium_download_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
             driver.get(target_url)
             time.sleep(5)
 
-        # date range ～ CSV出力ボタン取得まででエラーが出た場合はポップアップ回避処理を実行して再試行
         try:
             rng = _determine_dates(status, status_cfg)
-            if rng:
-                _fill_date_inputs(driver, rng[0], rng[1])
-
-            driver.execute_script("window.scrollBy(0, 300);")
-            time.sleep(5)
-            export_button = driver.find_elements(By.ID, "csv")
-            if not export_button:
-                raise RuntimeError("CSV出力ボタンが見つかりません。")
         except Exception:
             _recover_from_popup()
             rng = _determine_dates(status, status_cfg)
-            if rng:
-                _fill_date_inputs(driver, rng[0], rng[1])
 
-            driver.execute_script("window.scrollBy(0, 300);")
-            time.sleep(5)
-            export_button = driver.find_elements(By.ID, "csv")
-            if not export_button:
-                raise RuntimeError("CSV出力ボタンが見つかりません。")
+        if rng:
+            _fill_date_inputs(driver, rng[0], rng[1])
+
+        driver.execute_script("window.scrollBy(0, 300);")
+        time.sleep(5)
+        export_button = driver.find_elements(By.ID, "csv")
+        if not export_button:
+            raise RuntimeError("CSV出力ボタンが見つかりません。")
 
         clicked_at = time.time()
         export_button[0].click()
@@ -397,7 +364,6 @@ def selenium_download_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
         except Exception:
             pass
 
-    # ★統合モード：トップ階層の csv_* へ保存
     base_dir = os.path.dirname(__file__)
     unified_dir = os.path.join(
         base_dir,
@@ -465,7 +431,6 @@ def selenium_download_members(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
         except Exception:
             pass
 
-    # ★統合モード：トップ階層の csv_customer へ保存
     base_dir = os.path.dirname(__file__)
     unified_dir = os.path.join(base_dir, cfg["csv"]["input_directory_customer"])
     ensure_dir(unified_dir)
@@ -477,9 +442,6 @@ def selenium_download_members(cfg: Dict[str, Any], fac_cfg: Dict[str, Any],
     return dst
 
 
-# --------------------------
-# Importers（★統合モード：トップ階層の csv_* から、facility/slug で自分の分だけ拾う）
-# --------------------------
 def map_and_buffer_insert(cur, insert_sql: str, csv_path: str, mapping: Dict[str, Dict[str, str]], ordered_keys: List[str], encoding: str, convert_fn):
     buf: List[List[Any]] = []
     with open(csv_path, "r", encoding=encoding, errors="ignore") as fp:
@@ -509,12 +471,10 @@ def import_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any], facility_c
                         facility: str, login_slug: str, status: str) -> None:
     table = "yoyakuban_reservations" if status == "history" else "yoyakuban_reservations_onhand"
     base_dir = os.path.dirname(__file__)
-    # ★統合モード：施設サブフォルダではなくトップ階層の csv_* を参照
     unified_dir = os.path.join(
         base_dir,
         cfg["csv"]["input_directory_history"] if status == "history" else cfg["csv"]["input_directory_onhand"],
     )
-    # 自分の facility/slug のみ対象
     prefix = f"{facility}_{login_slug}_yoyakuban_{status}_"
     patterns = (f"{prefix}*.csv", f"{prefix}*.CSV")
     files = _unified_pick_files(unified_dir, patterns)
@@ -542,7 +502,6 @@ def import_reservations(cfg: Dict[str, Any], fac_cfg: Dict[str, Any], facility_c
                     cur, insert_sql, path, mapping, ordered_keys, cfg["csv"]["encoding"],
                     lambda rec, fac=facility, fc_=fc: add_generated_reservation(rec, fac, fc_)
                 )
-                # ★後処理：history → processed-csv へ移動、onhand → 削除
                 if status == "history":
                     processed = os.path.join(base_dir, cfg["csv"]["output_directory"])
                     ensure_dir(processed)
@@ -600,7 +559,6 @@ def import_customers(cfg: Dict[str, Any], fac_cfg: Dict[str, Any], facility_conf
                     cur, insert_sql, path, mapping, ordered_keys, cfg["csv"]["encoding"],
                     lambda rec, fac=facility, fc_=fc: add_generated_customer(rec, fac, fc_)
                 )
-                # ★後処理：customer は削除
                 try:
                     os.remove(path)
                 except Exception:
@@ -617,9 +575,6 @@ def import_customers(cfg: Dict[str, Any], fac_cfg: Dict[str, Any], facility_conf
         conn.close()
 
 
-# --------------------------
-# Main（Selenium の流れ・config 判定はベース通り、保存先/読取先のみ統合モード）
-# --------------------------
 def main() -> int:
     p = ArgumentParser(description="yoyakuban importer (統合モード・後処理仕様追加)")
     p.add_argument("--base-dir", type=str, default=os.path.dirname(__file__))
